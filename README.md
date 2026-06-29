@@ -21,7 +21,7 @@ You can run the app immediately with no credentials. The no-key mode includes:
 - detailed max-zoom regional GIBS imagery
 - modal pan/zoom, date/layer controls, GIBS time lapses, and Google Maps links
 
-Optional credentials unlock:
+Optional credentials (plus `VITE_ENABLE_SENTINEL=true`) unlock:
 
 - Copernicus Sentinel-2 and Sentinel-1 regional imagery, scene lists, Sentinel time lapses, and GIF export
 
@@ -79,9 +79,10 @@ If you add or change `.env` values while the dev server is running, stop it and 
 ```bash
 COPERNICUS_CLIENT_ID=
 COPERNICUS_CLIENT_SECRET=
+VITE_ENABLE_SENTINEL=
 ```
 
-Both are optional for basic NASA GIBS usage. Do not prefix them with `VITE_`; they are read by the local/API server layer and should not be exposed to browser code.
+All are optional — the app runs as a free NASA-only build with none of them set. `COPERNICUS_CLIENT_ID` / `COPERNICUS_CLIENT_SECRET` are read by the local/API server layer (do not prefix them with `VITE_`). `VITE_ENABLE_SENTINEL` is a build-time client flag: set it to `true` to expose the Sentinel layers in the UI. Sentinel needs **both** the server credentials and `VITE_ENABLE_SENTINEL=true`; otherwise the Sentinel layers stay hidden so the app never offers imagery it can't load.
 
 Older Sentinel Hub variable names are still accepted:
 
@@ -101,11 +102,12 @@ Sentinel support is optional, but it unlocks regional Sentinel-2 and Sentinel-1 
 3. Go to user settings and find the OAuth clients section.
 4. Create an OAuth client.
 5. Copy the client ID and client secret immediately. The secret may not be shown again after the dialog closes.
-6. Add them to `.env`:
+6. Add them to `.env`, and enable the Sentinel UI:
 
 ```bash
 COPERNICUS_CLIENT_ID=your_client_id
 COPERNICUS_CLIENT_SECRET=your_client_secret
+VITE_ENABLE_SENTINEL=true
 ```
 
 The app uses these credentials server-side to request access tokens from the Copernicus Data Space token endpoint, then calls the Sentinel Hub Process and Catalog APIs. The official authentication guide is here: [Sentinel Hub API authentication](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Overview/Authentication.html).
@@ -122,6 +124,7 @@ On the globe:
 - Toggle boundaries, labels, and activity overlays.
 - Zoom close to enter the detailed regional view.
 - Shift-click or right-click the globe or detailed view to open the modal.
+- On touch devices, tap the globe (or the detailed view) to open the modal; drag to orbit and pinch to zoom.
 
 In the modal:
 
@@ -157,8 +160,8 @@ The app is a Vite SPA with serverless-style API handlers in `api/` (Sentinel ima
 
 1. Push this repo to GitHub.
 2. In Vercel, **Add New → Project** and import the repo. The framework preset, build command (`npm run build`), and output directory (`dist`) are picked up from `vercel.json`.
-3. (Optional, for Sentinel) Under **Settings → Environment Variables**, add `COPERNICUS_CLIENT_ID` and `COPERNICUS_CLIENT_SECRET`. Leave them blank to ship NASA-only.
-4. Deploy. The serverless functions in `api/` are detected automatically.
+3. Deploy. By default this ships the **free NASA-only build** — no environment variables needed, and no quota or cost exposure.
+4. (Optional, to add Sentinel later) Under **Settings → Environment Variables**, set `COPERNICUS_CLIENT_ID`, `COPERNICUS_CLIENT_SECRET`, and `VITE_ENABLE_SENTINEL=true`, then redeploy. Note: the `api/` Sentinel proxies have no caching or rate-limiting, so a public deploy with Sentinel enabled can consume your Copernicus quota — add protection before enabling it publicly.
 
 ### Custom domain (`earth.globalclimateassociation.org`)
 
@@ -177,7 +180,11 @@ NASA GIBS-only functionality needs no server: run `npm run build` and serve `dis
 
 ## Troubleshooting
 
-**The globe loads but Sentinel layers fail**
+**The Sentinel layers don't appear**
+
+They are hidden unless you build with `VITE_ENABLE_SENTINEL=true`. Set it (along with the Copernicus credentials) and restart the dev server.
+
+**Sentinel layers appear but fail to load**
 
 Check that `COPERNICUS_CLIENT_ID` and `COPERNICUS_CLIENT_SECRET` are set in `.env`, then restart the dev server. Also confirm the OAuth client is active in the Copernicus Data Space Sentinel Hub Dashboard.
 

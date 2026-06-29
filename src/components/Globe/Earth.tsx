@@ -174,10 +174,15 @@ function useBackgroundGlobeTexture(textureUrl: string | undefined, enabled: bool
   return loadedTexture;
 }
 
+// A touch tap may wander a few pixels; beyond this it's treated as an orbit
+// drag, not a request to open the modal.
+const TAP_MOVE_TOLERANCE_PX = 10;
+
 function useGlobeClickHandlers({ onSelect }: SelectHandlers) {
   const selectedPointRef = useRef(new Vector3());
+  const tapStartRef = useRef<{ x: number; y: number; pointerId: number } | null>(null);
 
-  function selectEventPoint(event: ThreeEvent<MouseEvent>) {
+  function selectEventPoint(event: ThreeEvent<MouseEvent> | ThreeEvent<PointerEvent>) {
     event.stopPropagation();
     const point = selectedPointRef.current.copy(event.point).normalize();
     const { lat, lon } = pointToLatLon(point);
@@ -185,6 +190,7 @@ function useGlobeClickHandlers({ onSelect }: SelectHandlers) {
   }
 
   function handleClick(event: ThreeEvent<MouseEvent>) {
+    // Desktop: a deliberate shift-click opens the modal; a plain click orbits.
     if (!event.nativeEvent.shiftKey) return;
     selectEventPoint(event);
   }
@@ -194,7 +200,39 @@ function useGlobeClickHandlers({ onSelect }: SelectHandlers) {
     selectEventPoint(event);
   }
 
-  return { handleClick, handleContextMenu };
+  // Touch devices have no shift key or right-click, so a stationary tap opens
+  // the modal. We record the touch start and only open if the finger barely
+  // moved, so orbit drags don't trigger it.
+  function handlePointerDown(event: ThreeEvent<PointerEvent>) {
+    if (event.nativeEvent.pointerType !== "touch") return;
+    tapStartRef.current = {
+      x: event.nativeEvent.clientX,
+      y: event.nativeEvent.clientY,
+      pointerId: event.nativeEvent.pointerId,
+    };
+  }
+
+  function handlePointerUp(event: ThreeEvent<PointerEvent>) {
+    const start = tapStartRef.current;
+    tapStartRef.current = null;
+
+    if (
+      !start ||
+      event.nativeEvent.pointerType !== "touch" ||
+      event.nativeEvent.pointerId !== start.pointerId
+    ) {
+      return;
+    }
+
+    const moved = Math.hypot(
+      event.nativeEvent.clientX - start.x,
+      event.nativeEvent.clientY - start.y,
+    );
+    if (moved > TAP_MOVE_TOLERANCE_PX) return;
+    selectEventPoint(event);
+  }
+
+  return { handleClick, handleContextMenu, handlePointerDown, handlePointerUp };
 }
 
 function OverlaySphere({
@@ -237,10 +275,18 @@ function OverlayLayer({
 }
 
 export function PlaceholderEarth({ onSelect }: SelectHandlers) {
-  const { handleClick, handleContextMenu } = useGlobeClickHandlers({ onSelect });
+  const { handleClick, handleContextMenu, handlePointerDown, handlePointerUp } =
+    useGlobeClickHandlers({ onSelect });
 
   return (
-    <mesh onClick={handleClick} onContextMenu={handleContextMenu} castShadow receiveShadow>
+    <mesh
+      onClick={handleClick}
+      onContextMenu={handleContextMenu}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      castShadow
+      receiveShadow
+    >
       <sphereGeometry args={[1, 96, 96]} />
       <meshStandardMaterial
         color="#1c2a32"
@@ -267,7 +313,8 @@ export function Earth({
   const upgradeTexture = useBackgroundGlobeTexture(upgradeTextureUrl, imageryVisible);
   const texture = upgradeTexture?.texture ?? baseTexture;
   const activeTextureUrl = upgradeTexture?.url ?? textureUrl;
-  const { handleClick, handleContextMenu } = useGlobeClickHandlers({ onSelect });
+  const { handleClick, handleContextMenu, handlePointerDown, handlePointerUp } =
+    useGlobeClickHandlers({ onSelect });
 
   useEffect(() => {
     onReady?.(activeTextureUrl);
@@ -275,7 +322,12 @@ export function Earth({
 
   return (
     <group>
-      <mesh onClick={handleClick} onContextMenu={handleContextMenu}>
+      <mesh
+        onClick={handleClick}
+        onContextMenu={handleContextMenu}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+      >
         <sphereGeometry args={[1, 128, 128]} />
         {imageryVisible ? (
           <meshBasicMaterial key="imagery" map={texture} />
