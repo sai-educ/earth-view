@@ -2,7 +2,7 @@ import type { ImageryProvider } from "@/types/imagery";
 import { GibsProvider } from "./GibsProvider";
 import { SentinelProvider } from "./SentinelProvider";
 
-export const imageryProviders: ImageryProvider[] = [
+const gibsProviders: ImageryProvider[] = [
   new GibsProvider({
     id: "modis-terra",
     layerId: "MODIS_Terra_CorrectedReflectance_TrueColor",
@@ -202,11 +202,24 @@ export const imageryProviders: ImageryProvider[] = [
     bestFor: "Long archive of active fire locations going back to the early 2000s.",
     caveat: "Coarser than VIIRS fires; sparse alone — use as a translucent overlay.",
   }),
-  new SentinelProvider({ id: "sentinel-2-true-color", variantId: "s2-true-color" }),
-  new SentinelProvider({ id: "sentinel-2-false-color", variantId: "s2-false-color" }),
-  new SentinelProvider({ id: "sentinel-2-swir", variantId: "s2-swir" }),
-  new SentinelProvider({ id: "sentinel-1-radar", variantId: "s1-radar" }),
 ];
+
+// Sentinel imagery needs Copernicus server credentials, so it is hidden by
+// default. The free NASA-only build never offers a layer it can't load. To turn
+// it on, build with VITE_ENABLE_SENTINEL=true AND set the Copernicus keys on the
+// server (see .env.example).
+const SENTINEL_ENABLED = import.meta.env.VITE_ENABLE_SENTINEL === "true";
+
+const sentinelProviders: ImageryProvider[] = SENTINEL_ENABLED
+  ? [
+      new SentinelProvider({ id: "sentinel-2-true-color", variantId: "s2-true-color" }),
+      new SentinelProvider({ id: "sentinel-2-false-color", variantId: "s2-false-color" }),
+      new SentinelProvider({ id: "sentinel-2-swir", variantId: "s2-swir" }),
+      new SentinelProvider({ id: "sentinel-1-radar", variantId: "s1-radar" }),
+    ]
+  : [];
+
+export const imageryProviders: ImageryProvider[] = [...gibsProviders, ...sentinelProviders];
 
 export const modalImageryProviders = [
   ...imageryProviders.filter((provider) => provider.sentinelVariantId),

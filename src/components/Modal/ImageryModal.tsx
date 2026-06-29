@@ -1,5 +1,4 @@
 import {
-  Bot,
   ExternalLink,
   Film,
   LoaderCircle,
@@ -39,7 +38,6 @@ import { useModalPaneSize } from "./hooks/useModalPaneSize";
 import { useObjectUrls } from "./hooks/useObjectUrls";
 import { useRegionalImagery } from "./hooks/useRegionalImagery";
 import { useTimeLapse } from "./hooks/useTimeLapse";
-import { AskViewModal, type AskViewContext } from "./AskViewModal";
 import { LayerSwitcher } from "./LayerSwitcher";
 import { TimeLapseModal } from "./TimeLapseModal";
 
@@ -48,43 +46,6 @@ const SCENE_FOOTPRINT_STROKE = "#34d399";
 // one, masking the slight handoff shift. The outgoing layer is held a little
 // longer than the fade so the incoming image is fully opaque before removal.
 const SENTINEL_CROSSFADE_HOLD_MS = 300;
-
-// True when running inside the desktop (Electron) build, which injects this
-// marker via its preload script. Undefined in the web app, so desktop-specific
-// copy below stays inert on the web.
-const isDesktopApp = Boolean(
-  (window as unknown as { earthViewDesktop?: unknown }).earthViewDesktop,
-);
-
-function isSentinelCredentialsError(message: string) {
-  return /credentials are not configured/i.test(message);
-}
-
-function viewSignature(
-  context: AskViewContext | null,
-  imageUrl: string | null,
-) {
-  if (!context || !imageUrl) {
-    return "";
-  }
-
-  return JSON.stringify({
-    imageUrl,
-    providerId: context.providerId,
-    date: context.date,
-    lat: Number(context.lat.toFixed(5)),
-    lon: Number(context.lon.toFixed(5)),
-    bbox: context.bbox
-      ? {
-          minLat: Number(context.bbox.minLat.toFixed(5)),
-          minLon: Number(context.bbox.minLon.toFixed(5)),
-          maxLat: Number(context.bbox.maxLat.toFixed(5)),
-          maxLon: Number(context.bbox.maxLon.toFixed(5)),
-        }
-      : null,
-    zoom: Number(context.imageryZoomDegrees.toFixed(5)),
-  });
-}
 
 function scenePointToSvgPoint(point: SentinelScenePosition, bbox: BoundingBox) {
   const [lon, lat] = point;
@@ -202,7 +163,6 @@ export function ImageryModal() {
     recenterPoint,
   } = useAppStore();
   const [infoOpen, setInfoOpen] = useState(false);
-  const [askOpen, setAskOpen] = useState(false);
   const [hoveredSceneDateTime, setHoveredSceneDateTime] = useState<
     string | null
   >(null);
@@ -360,49 +320,12 @@ export function ImageryModal() {
       : formatSentinelCaptureTime(date, provider.sentinelVariantId, selectedLon)
     : regionalCaptureLabel;
   const captureLabel = regionalProviderCaptureLabel;
-  const askViewContext: AskViewContext | null = selectedPoint
-    ? {
-        coordinates,
-        lat: selectedPoint.lat,
-        lon: selectedPoint.lon,
-        date,
-        captureLabel,
-        providerName: provider.name,
-        providerId: provider.id,
-        satellite: provider.satellite,
-        category: provider.category,
-        resolutionMeters: provider.resolution,
-        providerSummary: provider.summary,
-        providerBestFor: provider.bestFor,
-        providerCaveat: provider.caveat,
-        sentinelVariantId: provider.sentinelVariantId,
-        sentinelScenes: acquiredScenes.map((scene) => ({
-          dateTime: scene.dateTime,
-          cloudCover: scene.cloudCover ?? null,
-        })),
-        bbox: regionalImagery.bbox,
-        imageryZoomDegrees,
-        imageWidth: imagePaneSize?.width ?? null,
-        imageHeight: imagePaneSize?.height ?? null,
-      }
-    : null;
-  const askViewSignature = viewSignature(
-    askViewContext,
-    regionalImagery.imageUrl,
-  );
-  const askReady = Boolean(
-    regionalImagery.imageUrl &&
-    askViewContext &&
-    regionalImagery.bbox &&
-    !regionalImagery.imageLoading,
-  );
 
   function handleOpenChange(open: boolean) {
     if (open) {
       return;
     }
 
-    setAskOpen(false);
     closeModal();
   }
 
@@ -559,9 +482,7 @@ export function ImageryModal() {
               )}
             {regionalImagery.error && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/80 p-8 text-center text-sm text-muted-foreground">
-                {isDesktopApp && isSentinelCredentialsError(regionalImagery.error)
-                  ? "Sentinel imagery needs Copernicus API keys. Open Settings from the menu (or Ctrl+,) to add them."
-                  : regionalImagery.error}
+                {regionalImagery.error}
               </div>
             )}
           </div>
@@ -587,17 +508,6 @@ export function ImageryModal() {
                 </a>
               </Button>
             )}
-
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setAskOpen(true)}
-              disabled={!askReady}
-              className="w-full justify-start"
-            >
-              <Bot className="h-4 w-4" />
-              Ask AI
-            </Button>
 
             <div className="rounded-md border border-border bg-background/45 p-4">
               <div className="mb-1 flex items-center gap-2 text-sm font-medium">
@@ -716,13 +626,6 @@ export function ImageryModal() {
           </aside>
         </div>
       </DialogContent>
-      <AskViewModal
-        open={askOpen}
-        onOpenChange={setAskOpen}
-        imageUrl={regionalImagery.imageUrl}
-        viewContext={askViewContext}
-        viewSignature={askViewSignature}
-      />
       <ImageryInfoModal open={infoOpen} onOpenChange={setInfoOpen} />
       <TimeLapseModal
         open={timeLapse.timeLapseOpen}

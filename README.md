@@ -4,17 +4,11 @@
 
 # Earth View
 
-Earth View is an open-source satellite imagery explorer built with React, Vite, Three.js, Tailwind CSS, and Zustand. It starts with a 3D NASA GIBS globe, lets you zoom into a detailed regional pass, and opens a modal workspace for higher-resolution inspection, Sentinel imagery, time lapses, Google Maps handoff, and optional AI-assisted image analysis.
+Earth View is an open-source satellite imagery explorer built with React, Vite, Three.js, Tailwind CSS, and Zustand. It starts with a 3D NASA GIBS globe, lets you zoom into a detailed regional pass, and opens a modal workspace for higher-resolution inspection, Sentinel imagery, time lapses, and Google Maps handoff.
 
-## Download for Windows
+> **Provenance.** This repository is a stripped-down, **web-only derivative** of the original Earth View project created by **Colin Harrington** ([@colincode0](https://github.com/colincode0)). The original source is available at [colincode0/earth-view](https://github.com/colincode0/earth-view). This version removes the AI-assisted image analysis (OpenAI / Anthropic) and the Electron desktop application, retaining only the satellite-imagery globe for free public access on the web. See [Attribution & Provenance](#attribution--provenance) for details. Full credit for the original concept, design, and implementation belongs to the original author.
 
-Not a developer? Grab the desktop app — no setup required:
-
-**[⬇ Download Earth View for Windows](https://github.com/colincode0/earth-view/releases/latest/download/Earth-View-Setup.exe)**
-
-Run the installer (on first launch Windows may show a SmartScreen warning — click **More info → Run anyway**). The NASA globe works right away. To unlock Sentinel imagery and Ask AI, add your own free [Copernicus](https://shapps.dataspace.copernicus.eu/dashboard/) keys (and optional OpenAI / Anthropic keys) in the app's **Settings** window. Build details: [desktop/README.md](desktop/README.md).
-
-This README is focused on getting a new copy running from scratch. For deeper architecture notes and feature details, see [README-extended.md](README-extended.md).
+This is a web-only build, deployed as a static site plus serverless API routes (see [Deployment](#deployment)). This README is focused on getting a copy running from scratch. For deeper architecture notes and feature details, see [README-extended.md](README-extended.md).
 
 ## What Works Without API Keys
 
@@ -27,10 +21,9 @@ You can run the app immediately with no credentials. The no-key mode includes:
 - detailed max-zoom regional GIBS imagery
 - modal pan/zoom, date/layer controls, GIBS time lapses, and Google Maps links
 
-Optional credentials unlock:
+Optional credentials (plus `VITE_ENABLE_SENTINEL=true`) unlock:
 
 - Copernicus Sentinel-2 and Sentinel-1 regional imagery, scene lists, Sentinel time lapses, and GIF export
-- Ask AI chat in the modal through OpenAI and/or Anthropic
 
 ## Requirements
 
@@ -86,11 +79,10 @@ If you add or change `.env` values while the dev server is running, stop it and 
 ```bash
 COPERNICUS_CLIENT_ID=
 COPERNICUS_CLIENT_SECRET=
-OPENAI_API_KEY=
-ANTHROPIC_API_KEY=
+VITE_ENABLE_SENTINEL=
 ```
 
-All of these are optional for basic NASA GIBS usage. Do not prefix them with `VITE_`; they are read by the local/API server layer and should not be exposed to browser code.
+All are optional — the app runs as a free NASA-only build with none of them set. `COPERNICUS_CLIENT_ID` / `COPERNICUS_CLIENT_SECRET` are read by the local/API server layer (do not prefix them with `VITE_`). `VITE_ENABLE_SENTINEL` is a build-time client flag: set it to `true` to expose the Sentinel layers in the UI. Sentinel needs **both** the server credentials and `VITE_ENABLE_SENTINEL=true`; otherwise the Sentinel layers stay hidden so the app never offers imagery it can't load.
 
 Older Sentinel Hub variable names are still accepted:
 
@@ -110,46 +102,15 @@ Sentinel support is optional, but it unlocks regional Sentinel-2 and Sentinel-1 
 3. Go to user settings and find the OAuth clients section.
 4. Create an OAuth client.
 5. Copy the client ID and client secret immediately. The secret may not be shown again after the dialog closes.
-6. Add them to `.env`:
+6. Add them to `.env`, and enable the Sentinel UI:
 
 ```bash
 COPERNICUS_CLIENT_ID=your_client_id
 COPERNICUS_CLIENT_SECRET=your_client_secret
+VITE_ENABLE_SENTINEL=true
 ```
 
 The app uses these credentials server-side to request access tokens from the Copernicus Data Space token endpoint, then calls the Sentinel Hub Process and Catalog APIs. The official authentication guide is here: [Sentinel Hub API authentication](https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Overview/Authentication.html).
-
-After saving `.env`, restart the dev server.
-
-## Ask AI Setup
-
-Ask AI is optional. It appears inside the modal and can analyze the currently displayed image with view context such as coordinates, date, imagery provider, bbox, scene metadata, and follow-up chat history.
-
-You can configure either provider or both.
-
-### OpenAI
-
-1. Create or open an OpenAI Platform account.
-2. Create an API key from the [OpenAI API keys page](https://platform.openai.com/api-keys).
-3. Add it to `.env`:
-
-```bash
-OPENAI_API_KEY=your_openai_key
-```
-
-OpenAI's current quickstart is here: [OpenAI developer quickstart](https://platform.openai.com/docs/quickstart).
-
-### Anthropic
-
-1. Create or open a Claude Console account.
-2. Create an API key from the Claude Console account settings.
-3. Add it to `.env`:
-
-```bash
-ANTHROPIC_API_KEY=your_anthropic_key
-```
-
-Anthropic's current API overview is here: [Claude API overview](https://docs.anthropic.com/en/api/getting-started).
 
 After saving `.env`, restart the dev server.
 
@@ -163,6 +124,7 @@ On the globe:
 - Toggle boundaries, labels, and activity overlays.
 - Zoom close to enter the detailed regional view.
 - Shift-click or right-click the globe or detailed view to open the modal.
+- On touch devices, tap the globe (or the detailed view) to open the modal; drag to orbit and pinch to zoom.
 
 In the modal:
 
@@ -172,7 +134,6 @@ In the modal:
 - Change the date or imagery layer from the sidebar.
 - Open Google Maps for the selected coordinate.
 - Build GIBS or Sentinel time lapses.
-- Use Ask AI when an OpenAI or Anthropic key is configured.
 
 ## Available Scripts
 
@@ -193,27 +154,39 @@ npm run lint     # Run ESLint
 
 ## Deployment
 
-The app is a Vite SPA with serverless-style API handlers in `api/`.
+The app is a Vite SPA with serverless-style API handlers in `api/` (Sentinel image + scene proxies that keep Copernicus secrets server-side). The included `vercel.json` makes Vercel a one-step deploy; NASA GIBS works with no server credentials at all.
 
-For a hosted deployment:
+### Deploy to Vercel
 
-1. Install dependencies with `npm install`.
-2. Build with `npm run build`.
-3. Serve the generated `dist/` directory.
-4. Configure the same environment variables on the host for Sentinel and Ask AI features.
-5. Make sure the host supports the API routes in `api/` or adapt them to your server/runtime.
+1. Push this repo to GitHub.
+2. In Vercel, **Add New → Project** and import the repo. The framework preset, build command (`npm run build`), and output directory (`dist`) are picked up from `vercel.json`.
+3. Deploy. By default this ships the **free NASA-only build** — no environment variables needed, and no quota or cost exposure.
+4. (Optional, to add Sentinel later) Under **Settings → Environment Variables**, set `COPERNICUS_CLIENT_ID`, `COPERNICUS_CLIENT_SECRET`, and `VITE_ENABLE_SENTINEL=true`, then redeploy. Note: the `api/` Sentinel proxies have no caching or rate-limiting, so a public deploy with Sentinel enabled can consume your Copernicus quota — add protection before enabling it publicly.
 
-NASA GIBS-only functionality does not require server-side credentials, but Sentinel and Ask AI do.
+### Custom domain (`earth.globalclimateassociation.org`)
+
+1. In Vercel, open the project → **Settings → Domains** and add `earth.globalclimateassociation.org`.
+2. At your DNS provider (Cloudflare or wherever `globalclimateassociation.org` is hosted), create a **CNAME** record:
+   - **Name/Host:** `earth`
+   - **Target:** `cname.vercel-dns.com`
+   - If using Cloudflare DNS, set the record to **DNS only** (grey cloud) so Vercel can issue and serve its TLS certificate.
+3. Wait for DNS to propagate; Vercel auto-provisions HTTPS once the CNAME resolves.
+
+> **Cloudflare Pages alternative:** Cloudflare can host the static `dist/` build, but the `api/` Sentinel proxies would need to be rewritten as Cloudflare Pages Functions. If you only need the NASA GIBS globe (no Copernicus keys), Cloudflare Pages works directly against `dist/`. For Sentinel support with the least effort, use Vercel.
+
+### Generic static host
+
+NASA GIBS-only functionality needs no server: run `npm run build` and serve `dist/`. To keep Sentinel working on a non-Vercel host, adapt the handlers in `api/` to that platform's serverless/runtime and set the Copernicus environment variables there.
 
 ## Troubleshooting
 
-**The globe loads but Sentinel layers fail**
+**The Sentinel layers don't appear**
+
+They are hidden unless you build with `VITE_ENABLE_SENTINEL=true`. Set it (along with the Copernicus credentials) and restart the dev server.
+
+**Sentinel layers appear but fail to load**
 
 Check that `COPERNICUS_CLIENT_ID` and `COPERNICUS_CLIENT_SECRET` are set in `.env`, then restart the dev server. Also confirm the OAuth client is active in the Copernicus Data Space Sentinel Hub Dashboard.
-
-**Ask AI is visible but requests fail**
-
-Set `OPENAI_API_KEY` or `ANTHROPIC_API_KEY`, restart the dev server, and verify the provider account has billing/API access enabled.
 
 **Environment variables are not being picked up**
 
@@ -226,6 +199,18 @@ Some public satellite products lag behind real time. The app intentionally defau
 **The browser is sluggish**
 
 The globe uses large WebGL textures and can be demanding on older hardware. Try closing other GPU-heavy tabs or reducing browser zoom.
+
+## Attribution & Provenance
+
+Earth View was originally created by **Colin Harrington** ([@colincode0](https://github.com/colincode0)). The original repository — including the AI-assisted analysis features and the Windows desktop application — remains available at [github.com/colincode0/earth-view](https://github.com/colincode0/earth-view).
+
+This repository is a **derivative, web-only edition** maintained as a separate fork. It differs from the original work as follows:
+
+- **Removed:** AI-assisted image analysis (OpenAI / Anthropic) and the Electron desktop build.
+- **Retained:** the 3D satellite-imagery globe and all imagery/data integrations (NASA GIBS, Copernicus Sentinel, USGS, NASA EONET, Natural Earth).
+- **Added:** touch support, a NASA-only default configuration, and minor polish for public web hosting.
+
+All credit for the original concept, design, and engineering belongs to the original author; this edition contributes only the adaptation described above. For questions of licensing and reuse, please refer to the upstream repository.
 
 ## Project Notes
 

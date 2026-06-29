@@ -30,6 +30,8 @@ const ZOOM_STEP_FACTOR = 1.05;
 const ZOOM_SHIFT_TICKS = 3;
 const ZOOM_COMMIT_DELAY_MS = 260;
 const ZOOM_CROSSFADE_HOLD_MS = 300;
+// A touch tap can drift a few pixels; beyond this it's a pan drag, not an open.
+const TAP_MOVE_TOLERANCE_PX = 10;
 
 type DragStart = {
   pointerId: number;
@@ -971,14 +973,32 @@ export function MaxZoomImagery() {
             }
           }}
           onPointerUp={(event) => {
-            const nextPan = dragStart
+            const start = dragStart;
+            const nextPan = start
               ? {
-                  x: dragStart.originX + event.clientX - dragStart.x,
-                  y: dragStart.originY + event.clientY - dragStart.y,
+                  x: start.originX + event.clientX - start.x,
+                  y: start.originY + event.clientY - start.y,
                 }
               : pan;
 
             setDragStart(null);
+
+            // Touch has no shift key or right-click, so a stationary tap opens
+            // the modal. A finger that moved more than the tolerance was a pan.
+            if (
+              start &&
+              event.pointerType === "touch" &&
+              Math.hypot(event.clientX - start.x, event.clientY - start.y) <=
+                TAP_MOVE_TOLERANCE_PX
+            ) {
+              const point = pointFromImageEvent(event);
+
+              if (point) {
+                selectPoint(point.lat, point.lon, point.imageryView);
+                return;
+              }
+            }
+
             commitPan(nextPan);
           }}
           onPointerCancel={() => {

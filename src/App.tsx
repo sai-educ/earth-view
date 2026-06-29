@@ -38,6 +38,57 @@ export default function App() {
       </header>
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-40 bg-gradient-to-t from-background/75 to-transparent" />
+
+      <footer className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex justify-center px-4 pb-2">
+        <p className="pointer-events-auto max-w-[calc(100vw-2rem)] rounded-md bg-background/40 px-2 py-1 text-center text-[10px] leading-tight text-muted-foreground backdrop-blur">
+          Imagery{" "}
+          <a
+            href="https://www.earthdata.nasa.gov/technology/gibs"
+            target="_blank"
+            rel="noreferrer"
+            className="underline-offset-2 hover:text-foreground hover:underline"
+          >
+            NASA GIBS
+          </a>{" "}
+          ·{" "}
+          <a
+            href="https://dataspace.copernicus.eu/"
+            target="_blank"
+            rel="noreferrer"
+            className="underline-offset-2 hover:text-foreground hover:underline"
+          >
+            Copernicus/ESA
+          </a>{" "}
+          · activity{" "}
+          <a
+            href="https://earthquake.usgs.gov/"
+            target="_blank"
+            rel="noreferrer"
+            className="underline-offset-2 hover:text-foreground hover:underline"
+          >
+            USGS
+          </a>
+          ,{" "}
+          <a
+            href="https://eonet.gsfc.nasa.gov/"
+            target="_blank"
+            rel="noreferrer"
+            className="underline-offset-2 hover:text-foreground hover:underline"
+          >
+            NASA EONET
+          </a>{" "}
+          · borders{" "}
+          <a
+            href="https://www.naturalearthdata.com/"
+            target="_blank"
+            rel="noreferrer"
+            className="underline-offset-2 hover:text-foreground hover:underline"
+          >
+            Natural Earth
+          </a>
+        </p>
+      </footer>
+
       <ImageryModal />
     </main>
   );

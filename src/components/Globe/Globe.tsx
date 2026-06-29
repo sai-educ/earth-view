@@ -416,6 +416,9 @@ export function Globe() {
     >
       <Canvas
         className="globe-canvas"
+        // touch-action: none lets OrbitControls own pinch/drag gestures instead
+        // of the browser zooming/scrolling the page on top of the globe.
+        style={{ touchAction: "none" }}
         camera={{ position: [0, 0, 3.35], fov: 42, near: 0.01, far: 100 }}
         draggable={false}
         dpr={[1, 2]}
