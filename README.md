@@ -6,7 +6,7 @@
 
 Earth View is an open-source satellite imagery explorer built with React, Vite, Three.js, Tailwind CSS, and Zustand. It starts with a 3D NASA GIBS globe, lets you zoom into a detailed regional pass, and opens a modal workspace for higher-resolution inspection, Sentinel imagery, time lapses, and Google Maps handoff.
 
-> **This is the free, no-AI web build.** All AI analysis (OpenAI / Anthropic) has been removed. The app pulls satellite imagery only — NASA GIBS, Copernicus Sentinel, and related public sources — and renders it on the 3D globe.
+> **Provenance.** This repository is a stripped-down, **web-only derivative** of the original Earth View project created by **Colin Harrington** ([@colincode0](https://github.com/colincode0)). The original source is available at [colincode0/earth-view](https://github.com/colincode0/earth-view). This version removes the AI-assisted image analysis (OpenAI / Anthropic) and the Electron desktop application, retaining only the satellite-imagery globe for free public access on the web. See [Attribution & Provenance](#attribution--provenance) for details. Full credit for the original concept, design, and implementation belongs to the original author.
 
 This is a web-only build, deployed as a static site plus serverless API routes (see [Deployment](#deployment)). This README is focused on getting a copy running from scratch. For deeper architecture notes and feature details, see [README-extended.md](README-extended.md).
 
@@ -199,6 +199,18 @@ Some public satellite products lag behind real time. The app intentionally defau
 **The browser is sluggish**
 
 The globe uses large WebGL textures and can be demanding on older hardware. Try closing other GPU-heavy tabs or reducing browser zoom.
+
+## Attribution & Provenance
+
+Earth View was originally created by **Colin Harrington** ([@colincode0](https://github.com/colincode0)). The original repository — including the AI-assisted analysis features and the Windows desktop application — remains available at [github.com/colincode0/earth-view](https://github.com/colincode0/earth-view).
+
+This repository is a **derivative, web-only edition** maintained as a separate fork. It differs from the original work as follows:
+
+- **Removed:** AI-assisted image analysis (OpenAI / Anthropic) and the Electron desktop build.
+- **Retained:** the 3D satellite-imagery globe and all imagery/data integrations (NASA GIBS, Copernicus Sentinel, USGS, NASA EONET, Natural Earth).
+- **Added:** touch support, a NASA-only default configuration, and minor polish for public web hosting.
+
+All credit for the original concept, design, and engineering belongs to the original author; this edition contributes only the adaptation described above. For questions of licensing and reuse, please refer to the upstream repository.
 
 ## Project Notes
 
